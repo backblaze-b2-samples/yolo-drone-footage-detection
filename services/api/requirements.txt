@@ -15,7 +15,7 @@ boto3>=1.35.0
 # ML deps are bounded on both sides: unbounded torch/ultralytics installs cleanly
 # but breaks the marquee path on a fresh clone (see the recurring lesson). numpy
 # is held below 2 to avoid the ABI breakage seen across ML samples.
-ultralytics>=8.3.0,<8.4.0
+ultralytics>=8.4.114,<8.5.0
 torch>=2.2.0,<2.6.0
 torchvision>=0.17.0,<0.21.0
 numpy>=1.26.0,<2.0.0
