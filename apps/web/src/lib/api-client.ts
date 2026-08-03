@@ -1,8 +1,15 @@
 import type {
   DailyUploadCount,
+  DetectionParams,
+  DetectionSummary,
   FileMetadata,
   FileMetadataDetail,
   FileUploadResponse,
+  FrameDetections,
+  Inspection,
+  InspectionStatusResponse,
+  InspectionUpdate,
+  TrackGeoJSON,
   UploadStats,
 } from "@yolo-drone-footage-detection/shared";
 
@@ -28,7 +35,26 @@ export const API_CLIENT_ROUTES = {
   legacyFileMetadata: { method: "get", path: "/files/{key}" },
   legacyFileDelete: { method: "delete", path: "/files/{key}" },
   upload: { method: "post", path: "/upload" },
+  inspections: { method: "get", path: "/inspections" },
+  inspectionCreate: { method: "post", path: "/inspections" },
+  inspection: { method: "get", path: "/inspections/{inspection_id}" },
+  inspectionUpdate: { method: "post", path: "/inspections/{inspection_id}" },
+  inspectionDelete: { method: "delete", path: "/inspections/{inspection_id}" },
+  inspectionRun: { method: "post", path: "/inspections/{inspection_id}/run" },
+  inspectionStatus: { method: "get", path: "/inspections/{inspection_id}/status" },
+  inspectionTrack: { method: "get", path: "/inspections/{inspection_id}/track" },
+  inspectionSummary: { method: "get", path: "/inspections/{inspection_id}/summary" },
+  inspectionFrames: { method: "get", path: "/inspections/{inspection_id}/frames" },
+  inspectionObject: { method: "get", path: "/inspections/{inspection_id}/object" },
 } as const satisfies Record<string, ApiClientRoute>;
+
+/** Substitute an inspection id into a `{inspection_id}` path template. */
+function inspectionPath(
+  path: `${string}{inspection_id}${string}`,
+  id: string,
+): string {
+  return path.replace("{inspection_id}", encodeURIComponent(id));
+}
 
 /** Typed API error with HTTP status code for caller-side branching. */
 export class ApiError extends Error {
@@ -270,4 +296,153 @@ export function uploadFile(
     );
     xhr.send(formData);
   });
+}
+
+// ---------------------------------------------------------------------------
+// Inspections — the app's primary entity (one video + its derived detection/GPS
+// record). Every function targets a route declared in API_CLIENT_ROUTES so the
+// contract test can prove the client and the OpenAPI artifact agree.
+// ---------------------------------------------------------------------------
+
+/** The fields a create/edit form collects for one inspection. */
+export interface InspectionInput {
+  file: File;
+  name: string;
+  params: DetectionParams;
+  sidecar?: File | null;
+}
+
+/** The delete route's structured acknowledgement. */
+export interface InspectionDeleteResult {
+  deleted: boolean;
+  id: string;
+  objects_removed: number;
+}
+
+export async function getInspections() {
+  return apiFetch<Inspection[]>(API_CLIENT_ROUTES.inspections.path);
+}
+
+export async function getInspection(id: string) {
+  return apiFetch<Inspection>(
+    inspectionPath(API_CLIENT_ROUTES.inspection.path, id)
+  );
+}
+
+/**
+ * Create an inspection by streaming a (potentially multi-GB) video to the API,
+ * which streams it on to B2. Uses XHR — not fetch — so the form can show real
+ * upload progress; fetch has no upload-progress event. Detection auto-runs on
+ * the server once the upload lands.
+ */
+export function createInspection(
+  input: InspectionInput,
+  onProgress?: (percent: number) => void
+): Promise<Inspection> {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    const formData = new FormData();
+    formData.append("file", input.file);
+    formData.append("name", input.name);
+    formData.append("model", input.params.model);
+    formData.append("device", input.params.device);
+    formData.append("conf_threshold", String(input.params.conf_threshold));
+    formData.append("sample_fps", String(input.params.sample_fps));
+    formData.append("max_frames", String(input.params.max_frames));
+    if (input.sidecar) {
+      formData.append("sidecar", input.sidecar);
+    }
+
+    xhr.upload.addEventListener("progress", (e) => {
+      if (e.lengthComputable && onProgress) {
+        onProgress(Math.round((e.loaded / e.total) * 100));
+      }
+    });
+
+    xhr.addEventListener("load", () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        resolve(JSON.parse(xhr.responseText));
+      } else {
+        try {
+          const body = JSON.parse(xhr.responseText);
+          reject(
+            new ApiError(
+              body.detail || `Create failed: ${xhr.status}`,
+              xhr.status
+            )
+          );
+        } catch {
+          reject(new ApiError(`Create failed: ${xhr.status}`, xhr.status));
+        }
+      }
+    });
+
+    xhr.addEventListener("error", () => reject(networkError()));
+    xhr.addEventListener("abort", () =>
+      reject(new ApiError("Create aborted", 0))
+    );
+
+    xhr.open(
+      API_CLIENT_ROUTES.inspectionCreate.method.toUpperCase(),
+      `${API_BASE}${API_CLIENT_ROUTES.inspectionCreate.path}`
+    );
+    xhr.send(formData);
+  });
+}
+
+export async function updateInspection(id: string, update: InspectionUpdate) {
+  return apiFetch<Inspection>(
+    inspectionPath(API_CLIENT_ROUTES.inspectionUpdate.path, id),
+    {
+      method: API_CLIENT_ROUTES.inspectionUpdate.method.toUpperCase(),
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(update),
+    }
+  );
+}
+
+export async function deleteInspection(id: string) {
+  return apiFetch<InspectionDeleteResult>(
+    inspectionPath(API_CLIENT_ROUTES.inspectionDelete.path, id),
+    { method: API_CLIENT_ROUTES.inspectionDelete.method.toUpperCase() }
+  );
+}
+
+export async function runInspection(id: string) {
+  return apiFetch<InspectionStatusResponse>(
+    inspectionPath(API_CLIENT_ROUTES.inspectionRun.path, id),
+    { method: API_CLIENT_ROUTES.inspectionRun.method.toUpperCase() }
+  );
+}
+
+export async function getInspectionStatus(id: string) {
+  return apiFetch<InspectionStatusResponse>(
+    inspectionPath(API_CLIENT_ROUTES.inspectionStatus.path, id)
+  );
+}
+
+export async function getInspectionTrack(id: string) {
+  return apiFetch<TrackGeoJSON>(
+    inspectionPath(API_CLIENT_ROUTES.inspectionTrack.path, id)
+  );
+}
+
+export async function getInspectionSummary(id: string) {
+  return apiFetch<DetectionSummary | Record<string, never>>(
+    inspectionPath(API_CLIENT_ROUTES.inspectionSummary.path, id)
+  );
+}
+
+export async function getInspectionFrames(id: string) {
+  return apiFetch<FrameDetections[]>(
+    inspectionPath(API_CLIENT_ROUTES.inspectionFrames.path, id)
+  );
+}
+
+/** Presign one object that lives under this inspection's own prefix. */
+export async function getInspectionObjectUrl(id: string, key: string) {
+  const path = inspectionPath(API_CLIENT_ROUTES.inspectionObject.path, id);
+  return apiFetch<{ url: string }>(
+    `${path}?key=${encodeURIComponent(key)}`
+  );
 }
