@@ -14,9 +14,25 @@ A B2 sample app for infrastructure-inspection teams, fleet operators, and aerial
 
 ## What it looks like
 
-**Inspections** — the scoped library of drone-footage inspections, each with its detection status and counts.
+**Dashboard** — whole-bucket storage metrics, a 7-day upload-activity chart, and the most recent objects written to B2.
 
-**Inspection detail** — a Leaflet map of the GPS track with detection markers, an annotated-keyframe gallery, a per-frame detections table, and the inspection's own B2 objects.
+![Dashboard with storage metrics, a 7-day upload-activity chart, and recent uploads](docs/images/01-dashboard.png)
+
+**Inspections** — the scoped library of drone-footage inspections, each card showing its detection status, object counts, and GPS-point total.
+
+![Inspections library grid of drone-footage inspection cards](docs/images/02-inspections.png)
+
+**Inspection detail — Map** — a Leaflet map of the GPS track with green detection markers placed along the surveyed route.
+
+![Inspection detail map view with the GPS track and detection markers](docs/images/03-inspection-detail-map.png)
+
+**Inspection detail — Keyframes** — the annotated-keyframe gallery, each sampled frame labeled with its YOLO bounding boxes, timestamp, and detection count.
+
+![Inspection detail keyframe gallery with annotated YOLO detections](docs/images/04-inspection-keyframes.png)
+
+**Inspection detail — Detections** — the per-frame detections table with a class-count summary and the GPS coordinate correlated to each frame.
+
+![Inspection detail detections table with class summary and per-frame GPS coordinates](docs/images/05-inspection-detections.png)
 
 ## Agent-First Architecture
 
