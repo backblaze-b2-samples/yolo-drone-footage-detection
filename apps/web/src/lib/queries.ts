@@ -20,6 +20,7 @@ import {
   getInspectionFrames,
   getInspectionObjectUrl,
   getInspections,
+  getInspectionStatus,
   getInspectionTrack,
   getPreviewUrl,
   getUploadActivity,
@@ -32,6 +33,7 @@ import type {
   FileMetadataDetail,
   FrameDetections,
   Inspection,
+  InspectionStatusResponse,
   InspectionUpdate,
   TrackGeoJSON,
 } from "@yolo-drone-footage-detection/shared";
@@ -55,6 +57,7 @@ export const qk = {
   inspection: (id: string) => [...qk.all, "inspection", id] as const,
   inspectionTrack: (id: string) => [...qk.all, "inspection", id, "track"] as const,
   inspectionFrames: (id: string) => [...qk.all, "inspection", id, "frames"] as const,
+  inspectionStatus: (id: string) => [...qk.all, "inspection", id, "status"] as const,
   inspectionKeyframes: (id: string, count: number) =>
     [...qk.all, "inspection", id, "keyframes", count] as const,
 };
@@ -229,6 +232,24 @@ export function useInspection(id: string | undefined, { enabled = true }: QueryG
     queryKey: qk.inspection(id ?? ""),
     queryFn: () => getInspection(id as string),
     enabled: enabled && !!id,
+    refetchInterval: (query) =>
+      isInFlight(query.state.data?.status) ? INSPECTION_POLL_MS : false,
+  });
+}
+
+/**
+ * Live detection progress (frames_done / frames_total) merged from the
+ * in-memory job registry. Only meaningful while a run is in flight, so it polls
+ * on the same cadence as the manifest and stops when the run settles.
+ */
+export function useInspectionStatus(
+  id: string | undefined,
+  status: Inspection["status"] | undefined,
+) {
+  return useQuery<InspectionStatusResponse, ApiError>({
+    queryKey: qk.inspectionStatus(id ?? ""),
+    queryFn: () => getInspectionStatus(id as string),
+    enabled: !!id && isInFlight(status),
     refetchInterval: (query) =>
       isInFlight(query.state.data?.status) ? INSPECTION_POLL_MS : false,
   });
