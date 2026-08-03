@@ -231,7 +231,7 @@ export function DetectionParamsFields({
                 type="number"
                 min={1}
                 max={5000}
-                step={10}
+                step={1}
                 className="w-32 font-mono tabular-nums"
                 {...field}
               />

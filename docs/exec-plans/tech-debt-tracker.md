@@ -76,3 +76,12 @@ Low-severity polish, left for a follow-up; none blocks the core flow.
 | Custom `FileNotFoundError` shadowed the built-in | Renamed to `FileNotFoundServiceError` |
 | Dropzone accepted any file type client-side | `accept` allow-list mirroring backend `ALLOWED_TYPES` (tested for drift) |
 | No test harness for feature specs | pytest suite across upload, files, activity, errors, validation, rate limit, pagination |
+
+## 2026-08-03 — verify
+
+Nitpicks surfaced by the UX verify funnel (backlog only — the two blocker/friction findings from the same run were fixed in-repo, not deferred):
+
+- `/inspections` empty state — the "No inspections yet" card has no inline call-to-action button; the primary "New inspection" action is only in the page header + sidebar. The shared `EmptyState` already supports an unused `action` prop → wire an inline "New inspection" CTA into the empty state (shot: `.local/verify/A/02-inspections-empty.png`).
+- `/inspections/[id]` detail (while a run is in flight) — the header reads "No GPS track" even when a `.gpx` sidecar was attached; it flips to the real "13 GPS points" only once the job reaches `done`. Transiently implies the sidecar was ignored → derive the in-flight header from the submitted sidecar (or show "GPS track pending") instead of `has_track`, which is only written at completion (shot: `.local/verify/B/09-detail-reload-midop.png`).
+- `/inspections/[id]` Files tab — `track.geojson` is served with `Content-Type: application/octet-stream`; every other artifact carries an accurate type → set `application/geo+json` (or `application/json`) on the track object so it previews/downloads with the right type (shot: `.local/verify/C/r1-07-files.png`).
+

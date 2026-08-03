@@ -5,6 +5,7 @@ import {
   ArrowLeft,
   FolderOpen,
   Images,
+  Loader2,
   MapPin,
   Play,
   ScanSearch,
@@ -179,7 +180,13 @@ export function InspectionDetail({ id }: { id: string }) {
       {inFlight && (
         <div className="space-y-1.5" aria-live="polite">
           <div className="flex items-center justify-between text-sm">
-            <span className="text-muted-foreground">
+            <span className="flex items-center gap-2 text-muted-foreground">
+              {!(progress && progress.frames_total > 0) && (
+                <Loader2
+                  className="h-3.5 w-3.5 animate-spin"
+                  aria-hidden="true"
+                />
+              )}
               {inspection.status === "queued" ? "Queued…" : "Detecting objects…"}
             </span>
             {progress && progress.frames_total > 0 && (
@@ -188,7 +195,25 @@ export function InspectionDetail({ id }: { id: string }) {
               </span>
             )}
           </div>
-          <Progress value={progress && progress.frames_total > 0 ? pct : undefined} />
+          {progress && progress.frames_total > 0 ? (
+            <Progress value={pct} />
+          ) : (
+            // Warmup window: total frame count is unknown (queued or model
+            // still loading before the first frame). Render an animated
+            // indeterminate bar so the affordance moves instead of sitting
+            // empty like an idle/failed run.
+            <div
+              role="progressbar"
+              aria-label={
+                inspection.status === "queued"
+                  ? "Queued for detection"
+                  : "Warming up the detection model"
+              }
+              className="h-2 w-full overflow-hidden rounded-full bg-primary/20"
+            >
+              <div className="h-full w-1/3 animate-pulse rounded-full bg-primary" />
+            </div>
+          )}
         </div>
       )}
 
