@@ -1,24 +1,22 @@
 <!-- last_verified: 2026-07-29 -->
 # Drone Footage Detection
 
-Stop wiring boilerplate and start building. This open-source starter kit gives vibe coders and AI coding agents a production-ready foundation — a full-stack TypeScript + Python template with a pre-built dashboard UI, file upload system, and **[Backblaze B2](https://www.backblaze.com/sign-up/ai-cloud-storage?utm_source=github&utm_medium=referral&utm_campaign=ai_artifacts&utm_content=b2ai-drone-detect)** cloud storage already integrated. Save thousands of tokens on setup prompts, skip the "build me a dashboard from scratch" loop, and go straight to building your app's unique features.
+A B2 sample app for infrastructure-inspection teams, fleet operators, and aerial-survey engineers. Upload a large drone or dashcam video (optionally with a GPS track), and the app runs **[Ultralytics YOLO](https://github.com/ultralytics/ultralytics)** object detection on sampled keyframes locally — no second API key — then writes the source video, annotated keyframes, per-frame detection JSON, a detection summary, and a GeoJSON track back to **[Backblaze B2](https://www.backblaze.com/sign-up/ai-cloud-storage?utm_source=github&utm_medium=referral&utm_campaign=ai_artifacts&utm_content=b2ai-drone-detect)**. It then serves a per-inspection view that correlates detections with GPS coordinates on a map alongside an annotated-keyframe gallery. It demonstrates **B2 as the storage layer for a geospatial AI video-analytics pipeline** — one source video fans out into hundreds of derived objects — over the **S3-compatible API** with a custom user agent and the standard `B2_*` env vars.
 
 **What you get out of the box:**
-- Full-stack dashboard UI (Next.js 16 + React 19 + Tailwind v4 + shadcn/ui)
-- File upload with drag-and-drop, progress tracking, and metadata extraction
-- File browser with preview, download, and delete
-- FastAPI backend with strict layered architecture and structural tests
+- Bulk video ingest streamed straight to B2 (multi-GB files are never buffered in memory)
+- Local per-frame YOLO object detection with annotated keyframes written back to B2
+- Tiered GPS-track extraction (GPX/SRT sidecar → embedded telemetry → graceful "no track") stored as GeoJSON
+- A geotagged inspection view: a Leaflet map of the track + detection markers, a keyframe gallery, and a class-count summary
+- A scoped Inspections library plus the reusable full-bucket file explorer
+- FastAPI backend with strict layered architecture, structural tests, and an in-process detection job runner
 - Agent-optimized docs — your AI coding agent can read the repo and start contributing immediately
 
 ## What it looks like
 
-**Dashboard** — stats, upload activity, and recent uploads at a glance:
+**Inspections** — the scoped library of drone-footage inspections, each with its detection status and counts.
 
-![Dashboard view showing stat cards, upload activity chart, and recent uploads table](docs/images/b2-starterkit-dashboard1.png)
-
-**File browser** — tree view with preview, download, and delete:
-
-![File browser view showing a tree of files with hover actions](docs/images/b2-starterkit-fileview2.png)
+**Inspection detail** — a Leaflet map of the GPS track with detection markers, an annotated-keyframe gallery, a per-frame detections table, and the inspection's own B2 objects.
 
 ## Agent-First Architecture
 
@@ -126,11 +124,11 @@ overwrites an existing `.env`.
 
 Open `.env` in your editor and keep it visible. Then head to the [Backblaze B2 dashboard](https://secure.backblaze.com/b2_buckets.htm?utm_source=github&utm_medium=referral&utm_campaign=ai_artifacts&utm_content=b2ai-drone-detect) and:
 
-1. **Create a bucket.** B2 will show two values — paste each into `.env`:
+1. **Create a bucket.** Paste its values into `.env`:
    - **Bucket Unique Name** → `B2_BUCKET_NAME`
-   - **Endpoint** → `B2_ENDPOINT`
+   - The bucket's region (e.g. `us-west-004`, read from its **Endpoint** `s3.<region>.backblazeb2.com`) → `B2_REGION`. The S3 endpoint is derived from the region; set the optional `B2_ENDPOINT` only to override it.
 2. **Create an application key** with `Read and Write` permission. B2 will show two values — paste each into `.env`:
-   - **keyID** → `B2_KEY_ID`
+   - **keyID** → `B2_APPLICATION_KEY_ID`
    - **applicationKey** → `B2_APPLICATION_KEY` *(only shown once — paste it now)*
 
 > Want a walkthrough? See the docs for [creating a bucket](https://www.backblaze.com/docs/cloud-storage-create-and-manage-buckets) and [creating app keys](https://www.backblaze.com/docs/cloud-storage-create-and-manage-app-keys).
@@ -141,7 +139,7 @@ Open `.env` in your editor and keep it visible. Then head to the [Backblaze B2 d
 pnpm dev
 ```
 
-That's it. Frontend at `localhost:3000`, API at `localhost:8000`. Upload a file and see it working. Interactive API docs (Swagger UI) are at `localhost:8000/docs`, with ReDoc at `/redoc`.
+That's it. Frontend at `localhost:3000`, API at `localhost:8000`. Go to **Inspections → New inspection**, upload a short `.mp4`/`.mov` clip, and watch detection run. The first run downloads the ~5 MB `yolo11n.pt` weights once from Ultralytics (no key). Interactive API docs (Swagger UI) are at `localhost:8000/docs`, with ReDoc at `/redoc`.
 
 `pnpm dev` runs the preflight check first — it catches the common setup gotchas (wrong Node/Python version, missing venv, missing or placeholder `.env`, ports already taken) and tells you exactly how to fix each one. Run it standalone any time with `pnpm run doctor`.
 
@@ -158,10 +156,12 @@ Full contract and rationale: [AGENTS.md §2 — Building on This Starter Kit](AG
 
 ## Core Features
 
-- [File Upload](docs/features/file-upload.md) — drag-and-drop upload with real-time progress
-- [File Browser](docs/features/file-browser.md) — list, preview, download, delete files
-- [Dashboard](docs/features/dashboard.md) — stats cards, upload chart, recent uploads
-- [Metadata Extraction](docs/features/metadata-extraction.md) — image dimensions, EXIF, PDF info, checksums
+- [Video Ingest](docs/features/video-ingest.md) — bulk drone/dashcam video streamed to B2 via multipart upload
+- [Object Detection](docs/features/object-detection.md) — local per-frame YOLO detection + annotated keyframes
+- [GPS Extraction](docs/features/gps-extraction.md) — tiered GPX/SRT/embedded track parsing → GeoJSON on B2
+- [Inspection Map](docs/features/inspection-map.md) — geotagged Leaflet map + detection browser
+- [File Browser](docs/features/file-browser.md) — the reusable full-bucket explorer (list, preview, download, delete)
+- [Dashboard](docs/features/dashboard.md) — whole-bucket storage-activity overview
 - [Design System](docs/design-system.md) — tokens, primitives, AI elements, the blaze generating loader, and inline `ErrorState` / `EmptyState` patterns. Live preview at `/design`.
 - Inline error handling — fetch failures surface *what's wrong* (API offline, 401, 5xx) and offer a Retry, instead of silently rendering empty state.
 - Single-source config — one `.env` at the repo root powers both API and web app, validated at startup so misconfig fails fast with a readable message.
@@ -177,8 +177,10 @@ Full contract and rationale: [AGENTS.md §2 — Building on This Starter Kit](AG
 ## Tech Stack
 
 - TypeScript, Next.js 16, React 19, Tailwind v4, shadcn/ui, Recharts
+- Leaflet + react-leaflet with keyless OpenStreetMap tiles for the inspection map
 - TanStack Query — caching, dedup, retry, stale-while-revalidate for every fetch
-- Python 3.11+, FastAPI, boto3, Pydantic v2, Pillow, PyPDF2
+- Python 3.11+, FastAPI, boto3, Pydantic v2
+- Ultralytics YOLO + PyTorch + OpenCV (local, CPU-default) for detection; gpxpy for GPS tracks
 - Backblaze B2 (S3-compatible object storage)
 - pnpm workspaces (monorepo)
 
@@ -234,7 +236,7 @@ hooks.
 |-----|---------|
 | [AGENTS.md](AGENTS.md) | Agent table of contents — start here |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | System layout, layering, data flows |
-| [docs/features/](docs/features/) | Feature docs (upload, browser, dashboard, metadata) |
+| [docs/features/](docs/features/) | Feature docs (video ingest, object detection, GPS extraction, inspection map, browser, dashboard) |
 | [docs/design-system.md](docs/design-system.md) | Design tokens, primitives, AI elements, loader, error/empty states |
 | [docs/app-workflows.md](docs/app-workflows.md) | User journeys |
 | [docs/dev-workflows.md](docs/dev-workflows.md) | Engineering workflows and testing |

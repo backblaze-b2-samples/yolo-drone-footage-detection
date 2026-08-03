@@ -3,6 +3,20 @@
 
 User journeys inside the application.
 
+## Run an Inspection (primary flow)
+
+- User navigates to `/inspections` — the scoped library of this app's own inspections (distinct from the full-bucket `/files` explorer)
+- Clicks **New inspection** (`/inspections/new`) and picks a `.mp4`/`.mov` video, optionally a `.gpx`/`.srt` GPS sidecar, an optional name, and detection parameters. Finite-option fields (model, device, frames-per-second) are selectors; the create form surfaces safe defaults as guidance, never an autofill button
+- On submit, the video streams to B2 with a progress bar; the app creates a `queued` Inspection and **auto-runs detection**, then redirects to the detail view
+- The detail view polls status while `processing`, showing a `frames_done / frames_total` progress bar
+- When `done`, four tabs read from B2:
+  - **Map** — a Leaflet track (keyless OpenStreetMap tiles) with detection markers, or a "no GPS track" notice when the clip had no GPS
+  - **Keyframes** — an annotated-frame gallery served via presigned URLs
+  - **Detections** — a class-count summary plus a per-frame table (time, objects, classes, GPS)
+  - **Files** — the inspection's own B2 objects (source, track, per-frame JSON, annotated JPEGs, manifest)
+- **Run detection** re-runs the job (e.g. after editing params); **Edit** opens a dialog pre-filled with the real params (name + model/device/fps/confidence/max-frames); **Delete** confirms via an `AlertDialog` and removes only `inspections/<id>/` from B2 (prefix-scoped)
+- See: [Video Ingest](features/video-ingest.md), [Object Detection](features/object-detection.md), [GPS Extraction](features/gps-extraction.md), [Inspection Map](features/inspection-map.md)
+
 ## Upload Files
 
 - User navigates to `/upload`

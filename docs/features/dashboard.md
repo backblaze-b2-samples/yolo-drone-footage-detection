@@ -2,7 +2,7 @@
 # Feature: Dashboard
 
 ## Purpose
-Provide an at-a-glance overview of file storage usage and recent upload activity.
+Provide an at-a-glance, whole-bucket overview of storage usage and recent activity for the app's drone-footage inspections and their derived artifacts. The primary domain view lives at `/inspections`; the dashboard stays a storage-activity summary and reads the same shared bucket listing.
 
 ## Used By
 - UI: `/` page (dashboard home)

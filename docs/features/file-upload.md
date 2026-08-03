@@ -85,5 +85,5 @@ Upload files from the browser to Backblaze B2 with real-time progress tracking.
 
 ## Related Docs
 - [ARCHITECTURE.md](../../ARCHITECTURE.md)
-- [Metadata Extraction](metadata-extraction.md)
+- [Video Ingest](video-ingest.md)
 - [App Workflows](../app-workflows.md)

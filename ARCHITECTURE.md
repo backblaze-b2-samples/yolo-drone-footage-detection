@@ -135,10 +135,12 @@ silently drift from FastAPI. `GET /metrics` is intentionally server-only.
 
 ## Core Features
 
-- [File Upload](docs/features/file-upload.md)
+- [Video Ingest](docs/features/video-ingest.md)
+- [Object Detection](docs/features/object-detection.md)
+- [GPS Extraction](docs/features/gps-extraction.md)
+- [Inspection Map](docs/features/inspection-map.md)
 - [File Browser](docs/features/file-browser.md)
 - [Dashboard](docs/features/dashboard.md)
-- [Metadata Extraction](docs/features/metadata-extraction.md)
 
 ## References
 
