@@ -2,11 +2,17 @@ from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
-    b2_endpoint: str = "https://s3.us-west-004.backblazeb2.com"
-    b2_key_id: str = ""
+    # Backblaze B2 (S3-compatible). The endpoint is derived from the region so a
+    # clone only needs the standard B2_* names; set b2_endpoint to override.
+    b2_application_key_id: str = ""
     b2_application_key: str = ""
     b2_bucket_name: str = ""
-    b2_public_url: str = ""
+    b2_region: str = "us-west-004"
+    b2_endpoint: str = ""
+    # Optional public base URL for a public bucket (builds browser-facing object
+    # URLs). Empty/None → the app falls back to presigned URLs. Optional on
+    # purpose: never list it in required-key startup validation.
+    b2_public_url_base: str = ""
 
     api_port: int = 8000
     # Interactive API docs (/docs, /redoc, /openapi.json). On by default for
@@ -23,8 +29,21 @@ class Settings(BaseSettings):
     # listing each one. NEVER ship this to production.
     api_cors_origin_regex: str = ""
 
-    # Upload limits
-    max_file_size: int = 100 * 1024 * 1024  # 100MB
+    # Upload limits. Drone/dashcam clips are large, so the ceiling is generous;
+    # the source video is streamed to B2 (never fully buffered) at ingest.
+    max_file_size: int = 2 * 1024 * 1024 * 1024  # 2GB
+
+    # --- Local YOLO detection (Ultralytics; no API key) ---
+    # Weights auto-download once from Ultralytics on first run (~5MB for nano).
+    yolo_model: str = "yolo11n.pt"
+    # Device resolution order is CUDA -> CPU with mps opt-in — see repo/yolo.py.
+    yolo_device: str = "auto"
+    yolo_conf_threshold: float = 0.25
+    # Runtime bounding so a long clip can't run unbounded on CPU.
+    frame_sample_fps: float = 1.0
+    max_frames: int = 300
+    # Optional exiftool path for embedded-telemetry GPS extraction (tier 2).
+    exiftool_path: str = ""
 
     # Optional confinement for key-addressed reads/deletes. Empty by default so
     # the by-key routes accept any key shape (they deliberately support nested
@@ -66,6 +85,18 @@ class Settings(BaseSettings):
     download_count_file: str = ".data/download_count.json"
 
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
+
+    @property
+    def endpoint_url(self) -> str:
+        """The S3 endpoint to use.
+
+        Prefer an explicit ``B2_ENDPOINT`` override; otherwise derive it from
+        ``B2_REGION`` so a clone only needs the standard B2_* names. No region
+        string is hardcoded in the S3 client — it always flows through here.
+        """
+        if self.b2_endpoint:
+            return self.b2_endpoint
+        return f"https://s3.{self.b2_region}.backblazeb2.com"
 
     @property
     def cors_origins(self) -> list[str]:

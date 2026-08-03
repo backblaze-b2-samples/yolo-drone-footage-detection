@@ -1,7 +1,8 @@
-# Human-edited inputs — lower-bound (`>=`) pins only; a regression test enforces
-# that (tests/test_dependency_lock.py). The exact resolution lives in
-# requirements.lock (used by setup and CI); regenerate it per
-# docs/dev-workflows.md#python-dependency-updates after editing this file.
+# Human-edited inputs — lower-bound (`>=`) pins with an upper bound on the ML
+# stack. A regression test enforces the `>=` form (tests/test_dependency_lock.py)
+# while the upper bounds keep a fresh clone off an untested major. The exact
+# resolution lives in requirements.lock (used by setup and CI); regenerate it
+# per docs/dev-workflows.md#python-dependency-updates after editing this file.
 fastapi>=0.115.0
 uvicorn[standard]>=0.34.0
 python-multipart>=0.0.18
@@ -9,8 +10,16 @@ python-dotenv>=1.0.0
 pydantic>=2.10.0
 pydantic-settings>=2.7.0
 boto3>=1.35.0
-Pillow>=11.0.0
-PyPDF2>=3.0.0
+
+# --- Detection + geospatial (local, no API key) ---
+# ML deps are bounded on both sides: unbounded torch/ultralytics installs cleanly
+# but breaks the marquee path on a fresh clone (see the recurring lesson). numpy
+# is held below 2 to avoid the ABI breakage seen across ML samples.
+ultralytics>=8.3.0,<8.4.0
+torch>=2.2.0,<2.6.0
+torchvision>=0.17.0,<0.21.0
+numpy>=1.26.0,<2.0.0
+gpxpy>=1.6.0,<2.0.0
 
 # Dev / quality
 ruff>=0.8.0

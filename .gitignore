@@ -17,6 +17,9 @@ __pycache__/
 venv/
 env/
 
+# YOLO model weights — auto-downloaded at runtime (~5MB for nano), never committed.
+*.pt
+
 # Environment
 # Real env files are never tracked; example/template files always are.
 # Negations must stay after the ignore patterns above them to take effect.

@@ -6,7 +6,6 @@ and re-runs the real `extract_metadata()`. Here `get_file_metadata` and
 """
 
 import hashlib
-import io
 from datetime import UTC, datetime
 
 import pytest
@@ -39,14 +38,6 @@ def _fake_metadata(
     )
 
 
-def _png_bytes(width: int, height: int) -> bytes:
-    from PIL import Image
-
-    buf = io.BytesIO()
-    Image.new("RGB", (width, height), color=(10, 20, 30)).save(buf, format="PNG")
-    return buf.getvalue()
-
-
 @pytest.mark.asyncio
 async def test_detail_returns_checksums_for_text_file(client, monkeypatch):
     monkeypatch.setattr(
@@ -66,32 +57,11 @@ async def test_detail_returns_checksums_for_text_file(client, monkeypatch):
     # The stored object's real upload time (head_object LastModified) is
     # threaded through the recompute — not the recompute wall-clock time.
     assert body["uploaded_at"].startswith("2026-01-02T03:04:05")
-    # Non-image / non-PDF: media/image/pdf fields stay null.
+    # This app trims image/PDF EXIF extraction: those fields stay null and only
+    # the always-exact core (checksums, size, extension) is returned.
     assert body["image_width"] is None
     assert body["pdf_pages"] is None
     assert body["duration_seconds"] is None
-
-
-@pytest.mark.asyncio
-async def test_detail_extracts_image_dimensions(client, monkeypatch):
-    png = _png_bytes(4, 7)
-    monkeypatch.setattr(
-        files_service,
-        "get_file_metadata",
-        lambda key: _fake_metadata(
-            key, content_type="image/png", size_bytes=len(png)
-        ),
-    )
-    monkeypatch.setattr(files_service, "get_object_bytes", lambda key: png)
-
-    resp = await client.get(
-        "/files-by-key/detail", params={"key": "uploads/pixel.png"}
-    )
-
-    assert resp.status_code == 200
-    body = resp.json()
-    assert body["image_width"] == 4
-    assert body["image_height"] == 7
 
 
 @pytest.mark.asyncio

@@ -1,7 +1,7 @@
 <!-- last_verified: 2026-07-29 -->
 # Security
 
-Security principles and implementation for the vibe-coding-starter-kit.
+Security principles and implementation for the yolo-drone-footage-detection.
 
 ## Trust Boundaries
 

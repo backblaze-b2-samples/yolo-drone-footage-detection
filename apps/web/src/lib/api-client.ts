@@ -4,7 +4,7 @@ import type {
   FileMetadataDetail,
   FileUploadResponse,
   UploadStats,
-} from "@vibe-coding-starter-kit/shared";
+} from "@yolo-drone-footage-detection/shared";
 
 export const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
