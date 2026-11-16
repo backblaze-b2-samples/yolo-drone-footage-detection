@@ -9,7 +9,7 @@ python-multipart>=0.0.18
 python-dotenv>=1.0.0
 pydantic>=2.10.0
 pydantic-settings>=2.7.0
-boto3>=1.35.0
+boto3>=1.43.62
 
 # --- Detection + geospatial (local, no API key) ---
 # ML deps are bounded on both sides: unbounded torch/ultralytics installs cleanly
